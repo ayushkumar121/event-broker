@@ -10,12 +10,13 @@
 #include "broker.hpp"
 
 constexpr const char* BROKER_HOST = "127.0.0.1";
-constexpr int PORT = 8080;
+constexpr int PORT = 1235;
 
 int main(int, char**) {
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) {
-    panic("cannot open socket");
+    fprintf(stderr, "ERROR: cannot open socket\n");
+    exit(EXIT_FAILURE);
   }
 
   struct sockaddr_in sockaddr;
@@ -24,7 +25,14 @@ int main(int, char**) {
   sockaddr.sin_port = htons(PORT);
 
   if (connect(sockfd, (const struct sockaddr*)&sockaddr, sizeof(sockaddr)) < 0) {
-    panic("cannot connect to socket");
+    fprintf(stderr, "ERROR: cannot connect to socket\n");
+    exit(EXIT_FAILURE);
+  }
+
+  std::vector<uint8_t> message = {0, 1, 0};
+  if (Broker::write_message(sockfd, "", 0, message)) {
+    fprintf(stderr, "ERROR: cannot write message\n");
+    exit(EXIT_FAILURE);
   }
 
   close(sockfd);
