@@ -2,6 +2,7 @@
 
 #include <string>
 #include <string_view>
+#include <vector>
 #include <span>
 #include <stdint.h>
 #include <unistd.h>
@@ -17,6 +18,10 @@ namespace Broker {
   struct Request {
     RequestType type;
     std::vector<uint8_t> data;
+  };
+
+  struct Metadata {
+    int foo;
   };
 
   std::vector<uint8_t> serialise_request(RequestType type, std::span<uint8_t> bytes) {
@@ -42,7 +47,15 @@ namespace Broker {
     return buffer;
   }
 
-  bool write_message(int sockfd, std::string_view topic_name, int, std::span<uint8_t> message) {
+  bool get_metadata(int sockfd, std::string_view, int, Metadata*) {
+    auto request_buffer = serialise_request(REQUEST_METADATA, std::span<uint8_t>());
+    if(write(sockfd, request_buffer.data(), request_buffer.size()) < 0) {
+      return true;
+    }
+    return false;
+  }
+
+  bool write_message(int sockfd, std::string_view, int, std::span<uint8_t> message) {
     auto request_buffer = serialise_request(REQUEST_WRITE, message);
     if(write(sockfd, request_buffer.data(), request_buffer.size()) < 0) {
       return true;

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string>
 #include <string_view>
+#include <vector>
 #include <stdlib.h>
 #include <signal.h>
 #include <arpa/inet.h>

@@ -1,10 +1,10 @@
-CXX=c++
-CXXFLAGS=-std=c++20 -Wall -Wpedantic -Wextra -g
-
 all: producer broker
 
-producer: producer.cpp broker.hpp
-	$(CXX) -o producer producer.cpp $(CXXFLAGS)
+producer: prebuild
+	go build -o bin/producer ./cmd/producer
 
-broker: broker.cpp broker.hpp
-	$(CXX) -o broker broker.cpp $(CXXFLAGS)
+broker: prebuild
+	go build -o bin/broker ./cmd/broker
+
+prebuild:
+	mkdir -p bin
