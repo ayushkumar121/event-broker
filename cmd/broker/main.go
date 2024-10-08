@@ -6,6 +6,7 @@ import (
   "os"
   "os/signal"
   "syscall"
+  "github.com/ayushkumar121/event-broker/pkg/protocol"
 )
 
 const (
@@ -18,13 +19,13 @@ func main() {
   
   ln, err := net.Listen("tcp", ":"+PORT)
   if err != nil {
-    log.Fatalf("cannot start server %v", err)
+    log.Fatalf("cannot start server %v\n", err)
   }
   defer ln.Close()
 
   go func() {
     <-sigs
-    log.Printf("termination signal received")
+    log.Println("termination signal received")
     ln.Close()
   }()
   
@@ -43,5 +44,13 @@ func main() {
 }
 
 func handleConnection(conn net.Conn) {
-  conn.Close() 
+  defer conn.Close()
+  
+  request, err := protocol.ParseRequest(conn)
+  if err != nil {
+    log.Printf("cannot parse request %v\n", err) 
+    return
+  }
+
+  log.Println(request)
 }

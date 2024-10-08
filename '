@@ -1,0 +1,15 @@
+go rewrite
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch go-rewrite
+# Changes to be committed:
+#	modified:   .gitignore
+#	modified:   Makefile
+#	modified:   broker.hpp
+#	new file:   cmd/broker/main.go
+#	new file:   cmd/producer/main.go
+#	new file:   go.mod
+#	new file:   pkg/protocol/requests.go
+#	modified:   producer.cpp
+#
