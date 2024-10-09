@@ -18,9 +18,10 @@ func main() {
 	}
 	defer conn.Close()
 
-	req := &protocol.ReadRequest{
+	req := &protocol.WriteRequest{
 		Topic:     "test",
 		Partition: 0,
+		Message:   []byte("Hello World"),
 	}
 
 	err = protocol.EncodeRequest(conn, req)
