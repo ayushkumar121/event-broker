@@ -8,9 +8,10 @@ import (
 type ResponseType uint32
 
 const (
-	REPONSE_METADATA ResponseType = iota
-	REPONSE_READ     ResponseType = iota
-	REPONSE_WRITE    ResponseType = iota
+	RESPONSE_METADATA ResponseType = iota
+	RESPONSE_READ     ResponseType = iota
+	RESPONSE_WRITE    ResponseType = iota
+	RESPONSE_ERROR    ResponseType = iota
 )
 
 type Response interface {
@@ -21,7 +22,7 @@ type MetaDataResponse struct {
 }
 
 func (*MetaDataResponse) GetType() ResponseType {
-	return REPONSE_METADATA
+	return RESPONSE_METADATA
 }
 
 type ReadResponse struct {
@@ -30,15 +31,23 @@ type ReadResponse struct {
 }
 
 func (*ReadResponse) GetType() ResponseType {
-	return REPONSE_READ
+	return RESPONSE_READ
 }
 
 type WriteResponse struct {
-	Offset uint64
+	Offset int64
 }
 
 func (*WriteResponse) GetType() ResponseType {
-	return REPONSE_WRITE
+	return RESPONSE_WRITE
+}
+
+type ErrorResponse struct {
+	Message string
+}
+
+func (*ErrorResponse) GetType() ResponseType {
+	return RESPONSE_ERROR
 }
 
 func DecodeResponse(r io.Reader) (Response, error) {
@@ -49,14 +58,17 @@ func DecodeResponse(r io.Reader) (Response, error) {
 	}
 
 	switch responseType {
-	case REPONSE_METADATA:
+	case RESPONSE_METADATA:
 		return decodeMetadataResponse(r)
 
-	case REPONSE_READ:
+	case RESPONSE_READ:
 		return decodeReadResponse(r)
 
-	case REPONSE_WRITE:
+	case RESPONSE_WRITE:
 		return decodeWriteResponse(r)
+
+	case RESPONSE_ERROR:
+		return decodeErrorResponse(r)
 
 	default:
 		return nil, ErrUnknownRequestType
@@ -96,7 +108,7 @@ func decodeReadResponse(r io.Reader) (*ReadResponse, error) {
 
 func decodeWriteResponse(r io.Reader) (*WriteResponse, error) {
 	// Decoding offset
-	var offset uint64
+	var offset int64
 	err := binary.Read(r, NetworkOrder, &offset)
 	if err != nil {
 		return nil, err
@@ -104,6 +116,25 @@ func decodeWriteResponse(r io.Reader) (*WriteResponse, error) {
 
 	return &WriteResponse{
 		Offset: offset,
+	}, nil
+}
+
+func decodeErrorResponse(r io.Reader) (*ErrorResponse, error) {
+	// Encoding message
+	var n uint32
+	err := binary.Read(r, NetworkOrder, &n)
+	if err != nil {
+		return nil, err
+	}
+
+	message := make([]byte, n)
+	err = binary.Read(r, NetworkOrder, message)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ErrorResponse{
+		Message: string(message),
 	}, nil
 }
 
@@ -115,14 +146,17 @@ func EncodeResponse(w io.Writer, res Response) error {
 	}
 
 	switch responseType {
-	case REPONSE_METADATA:
+	case RESPONSE_METADATA:
 		return encodeMetadataResponse(w, res.(*MetaDataResponse))
 
-	case REPONSE_READ:
+	case RESPONSE_READ:
 		return encodeReadResponse(w, res.(*ReadResponse))
 
-	case REPONSE_WRITE:
+	case RESPONSE_WRITE:
 		return encodeWriteResponse(w, res.(*WriteResponse))
+
+	case RESPONSE_ERROR:
+		return encodeErrorResponse(w, res.(*ErrorResponse))
 
 	default:
 		return ErrUnknownResponseType
@@ -156,6 +190,22 @@ func encodeReadResponse(w io.Writer, res *ReadResponse) error {
 func encodeWriteResponse(w io.Writer, res *WriteResponse) error {
 	// Encoding offset
 	err := binary.Write(w, NetworkOrder, res.Offset)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func encodeErrorResponse(w io.Writer, res *ErrorResponse) error {
+	// Encoding message
+	message := []byte(res.Message)
+	err := binary.Write(w, NetworkOrder, uint32(len(message)))
+	if err != nil {
+		return err
+	}
+
+	err = binary.Write(w, NetworkOrder, message)
 	if err != nil {
 		return err
 	}
