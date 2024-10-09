@@ -28,4 +28,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	res, err := protocol.DecodeResponse(conn)
+	if err != nil {
+		panic(err)
+	}
+
+	log.Println(res.(*protocol.WriteResponse))
 }

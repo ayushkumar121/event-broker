@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"encoding/binary"
-	"errors"
 	"io"
 )
 
@@ -44,15 +43,11 @@ func (*WriteRequest) GetType() RequestType {
 	return REQUEST_WRITE
 }
 
-var (
-	ErrUnknownRequestType = errors.New("unknown request type")
-)
-
-var NetworkOder = binary.BigEndian
+var NetworkOrder = binary.BigEndian
 
 func DecodeRequest(r io.Reader) (Request, error) {
 	var requestType RequestType
-	err := binary.Read(r, NetworkOder, &requestType)
+	err := binary.Read(r, NetworkOrder, &requestType)
 	if err != nil {
 		return nil, err
 	}
@@ -79,20 +74,20 @@ func decodeMetadataRequest(io.Reader) (*MetaDataRequest, error) {
 func decodeReadRequest(r io.Reader) (*ReadRequest, error) {
 	// Decoding topic
 	var n uint32
-	err := binary.Read(r, NetworkOder, &n)
+	err := binary.Read(r, NetworkOrder, &n)
 	if err != nil {
 		return nil, err
 	}
 
 	topic := make([]byte, n)
-	err = binary.Read(r, NetworkOder, topic)
+	err = binary.Read(r, NetworkOrder, topic)
 	if err != nil {
 		return nil, err
 	}
 
 	// Decoding partition
 	var partition uint32
-	err = binary.Read(r, NetworkOder, &partition)
+	err = binary.Read(r, NetworkOrder, &partition)
 	if err != nil {
 		return nil, err
 	}
@@ -106,33 +101,33 @@ func decodeReadRequest(r io.Reader) (*ReadRequest, error) {
 func decodeWriteRequest(r io.Reader) (*WriteRequest, error) {
 	// Decoding topic
 	var n uint32
-	err := binary.Read(r, NetworkOder, &n)
+	err := binary.Read(r, NetworkOrder, &n)
 	if err != nil {
 		return nil, err
 	}
 
 	topic := make([]byte, n)
-	err = binary.Read(r, NetworkOder, topic)
+	err = binary.Read(r, NetworkOrder, topic)
 	if err != nil {
 		return nil, err
 	}
 
 	// Decoding partition
 	var partition uint32
-	err = binary.Read(r, NetworkOder, &partition)
+	err = binary.Read(r, NetworkOrder, &partition)
 	if err != nil {
 		return nil, err
 	}
 
 	//Decoding message
 	var messageLen uint32
-	err = binary.Read(r, NetworkOder, &messageLen)
+	err = binary.Read(r, NetworkOrder, &messageLen)
 	if err != nil {
 		return nil, err
 	}
 
 	message := make([]byte, messageLen)
-	err = binary.Read(r, NetworkOder, message)
+	err = binary.Read(r, NetworkOrder, message)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +141,7 @@ func decodeWriteRequest(r io.Reader) (*WriteRequest, error) {
 
 func EncodeRequest(w io.Writer, req Request) error {
 	requestType := req.GetType()
-	err := binary.Write(w, NetworkOder, &requestType)
+	err := binary.Write(w, NetworkOrder, &requestType)
 	if err != nil {
 		return err
 	}
@@ -173,18 +168,18 @@ func encodeMetadataRequest(io.Writer, *MetaDataRequest) error {
 func encodeReadRequest(w io.Writer, req *ReadRequest) error {
 	// Encoding topic
 	topic := []byte(req.Topic)
-	err := binary.Write(w, NetworkOder, uint32(len(topic)))
+	err := binary.Write(w, NetworkOrder, uint32(len(topic)))
 	if err != nil {
 		return err
 	}
 
-	err = binary.Write(w, NetworkOder, topic)
+	err = binary.Write(w, NetworkOrder, topic)
 	if err != nil {
 		return err
 	}
 
 	// Encoding partition
-	err = binary.Write(w, NetworkOder, req.Partition)
+	err = binary.Write(w, NetworkOrder, req.Partition)
 	if err != nil {
 		return err
 	}
@@ -195,29 +190,29 @@ func encodeReadRequest(w io.Writer, req *ReadRequest) error {
 func encodeWriteRequest(w io.Writer, req *WriteRequest) error {
 	// Encoding topic
 	topic := []byte(req.Topic)
-	err := binary.Write(w, NetworkOder, uint32(len(topic)))
+	err := binary.Write(w, NetworkOrder, uint32(len(topic)))
 	if err != nil {
 		return err
 	}
 
-	err = binary.Write(w, NetworkOder, topic)
+	err = binary.Write(w, NetworkOrder, topic)
 	if err != nil {
 		return err
 	}
 
 	// Encoding partition
-	err = binary.Write(w, NetworkOder, req.Partition)
+	err = binary.Write(w, NetworkOrder, req.Partition)
 	if err != nil {
 		return err
 	}
 
 	// Encoding Message
-	err = binary.Write(w, NetworkOder, uint32(len(req.Message)))
+	err = binary.Write(w, NetworkOrder, uint32(len(req.Message)))
 	if err != nil {
 		return err
 	}
 
-	err = binary.Write(w, NetworkOder, req.Message)
+	err = binary.Write(w, NetworkOrder, req.Message)
 	if err != nil {
 		return err
 	}

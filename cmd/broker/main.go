@@ -82,13 +82,21 @@ func handleConnection(conn net.Conn) {
 }
 
 func handleMetadataReq(req *protocol.MetaDataRequest) (*protocol.MetaDataResponse, error) {
-	return nil, nil
+	log.Println("Metadata...", req)
+	return &protocol.MetaDataResponse{}, nil
 }
 
 func handleReadReq(req *protocol.ReadRequest) (*protocol.ReadResponse, error) {
-	return nil, nil
+	log.Println("Reading...", req)
+	return &protocol.ReadResponse{
+		Offset:  0,
+		Message: []byte{},
+	}, nil
 }
 
 func handleWriteReq(req *protocol.WriteRequest) (*protocol.WriteResponse, error) {
-	return nil, nil
+	log.Println("Writing...", req)
+	return &protocol.WriteResponse{
+		Offset: 0,
+	}, nil
 }
