@@ -1,4 +1,4 @@
 .vscode/
-*.dSYM
-producer
-broker
+bin/
+*.db
+broker.db

@@ -1,0 +1,18 @@
+CREATE TABLE IF NOT EXISTS topics (
+	"id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	"name" varchar(255)
+);
+
+CREATE TABLE IF NOT EXISTS partitions (
+	"id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	"topic" varchar(255),
+	"partition" INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+	"id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	"topic" varchar(255),
+	"partition" INTEGER NOT NULL,
+	"message" BLOB,
+	"timestamp" TEXT
+);
