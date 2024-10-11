@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 )
 
@@ -15,6 +16,7 @@ const (
 
 type Request interface {
 	GetType() RequestType
+	KeepAlive() bool
 }
 
 type MetaDataRequest struct {
@@ -22,6 +24,10 @@ type MetaDataRequest struct {
 
 func (*MetaDataRequest) GetType() RequestType {
 	return REQUEST_METADATA
+}
+
+func (*MetaDataRequest) KeepAlive() bool {
+	return false
 }
 
 type ReadRequest struct {
@@ -33,6 +39,10 @@ func (*ReadRequest) GetType() RequestType {
 	return REQUEST_READ
 }
 
+func (*ReadRequest) KeepAlive() bool {
+	return true
+}
+
 type WriteRequest struct {
 	Topic     string
 	Partition uint32
@@ -41,6 +51,10 @@ type WriteRequest struct {
 
 func (*WriteRequest) GetType() RequestType {
 	return REQUEST_WRITE
+}
+
+func (*WriteRequest) KeepAlive() bool {
+	return false
 }
 
 var NetworkOrder = binary.BigEndian
@@ -63,7 +77,7 @@ func DecodeRequest(r io.Reader) (Request, error) {
 		return decodeWriteRequest(r)
 
 	default:
-		return nil, ErrUnknownRequestType
+		return nil, errors.New("unknown request type")
 	}
 }
 
@@ -157,7 +171,7 @@ func EncodeRequest(w io.Writer, req Request) error {
 		return encodeWriteRequest(w, req.(*WriteRequest))
 
 	default:
-		return ErrUnknownRequestType
+		return errors.New("unknown request type")
 	}
 }
 

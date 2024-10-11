@@ -1,10 +1,10 @@
-all: producer broker
+all: client broker
 
-producer: prebuild
-	go build -o bin/producer ./cmd/producer
+client: prebuild
+	go build -o bin/client ./cmd/client
 
 broker: prebuild
-	go build -o bin/broker ./cmd
+	go build -o bin/broker ./cmd/broker
 
 prebuild:
 	mkdir -p bin

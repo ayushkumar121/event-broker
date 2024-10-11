@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	PORT     = "8080"
-	DATABASE = "broker.db"
+	PORT             = "8080"
+	DATABASE         = "broker.db"
+	CONNECTION_SLEEP = time.Second
 )
 
 var db *sql.DB
@@ -69,60 +70,77 @@ func main() {
 // Connection handling
 
 func handleConnection(conn net.Conn) {
-	defer conn.Close()
+	for {
+		req, err := protocol.DecodeRequest(conn)
+		if err != nil {
+			log.Printf("cannot parse request %v\n", err)
+			return
+		}
 
-	req, err := protocol.DecodeRequest(conn)
-	if err != nil {
-		log.Printf("cannot parse request %v\n", err)
-		return
-	}
+		var res protocol.Response
 
-	log.Printf("received request for %v\n", req.GetType())
+		switch req.GetType() {
+		case protocol.REQUEST_METADATA:
+			res, err = handleMetadataReq(req.(*protocol.MetaDataRequest))
 
-	var res protocol.Response
+		case protocol.REQUEST_READ:
+			res, err = handleReadReq(req.(*protocol.ReadRequest))
 
-	switch req.GetType() {
-	case protocol.REQUEST_METADATA:
-		res, err = handleMetadataReq(req.(*protocol.MetaDataRequest))
+		case protocol.REQUEST_WRITE:
+			res, err = handleWriteReq(req.(*protocol.WriteRequest))
 
-	case protocol.REQUEST_READ:
-		res, err = handleReadReq(req.(*protocol.ReadRequest))
+		default:
+			panic("unreachable")
+		}
 
-	case protocol.REQUEST_WRITE:
-		res, err = handleWriteReq(req.(*protocol.WriteRequest))
+		if err != nil {
+			protocol.EncodeResponse(conn, &protocol.ErrorResponse{
+				Message: err.Error(),
+			})
+			return
+		}
 
-	default:
-		panic("unreachable")
-	}
+		err = protocol.EncodeResponse(conn, res)
+		if err != nil {
+			log.Printf("cannot send response %v\n", err)
+			return
+		}
 
-	if err != nil {
-		protocol.EncodeResponse(conn, &protocol.ErrorResponse{
-			Message: err.Error(),
-		})
-		return
-	}
+		if !req.KeepAlive() {
+			return
+		}
 
-	err = protocol.EncodeResponse(conn, res)
-	if err != nil {
-		log.Printf("cannot send response %v\n", err)
-		return
+		time.Sleep(CONNECTION_SLEEP)
 	}
 }
 
 func handleMetadataReq(req *protocol.MetaDataRequest) (*protocol.MetaDataResponse, error) {
-	log.Println("Metadata...", req)
+	log.Printf("metadata request received: %v\n", req)
 	return &protocol.MetaDataResponse{}, nil
 }
 
 func handleReadReq(req *protocol.ReadRequest) (*protocol.ReadResponse, error) {
-	log.Println("Reading...", req)
+	log.Printf("read request received: %v\n", req)
+
+	// TODO: allow multiple message to be received
+	var offset uint32
+	var message []byte
+	err := db.QueryRow("SELECT id, message from messages WHERE topic=? and partition=? ORDER BY id DESC", req.Topic, req.Partition).Scan(&offset, &message)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: keep track of what offset each client is in
+
 	return &protocol.ReadResponse{
-		Offset:  0,
-		Message: []byte{},
+		Offset:  uint64(offset),
+		Message: message,
 	}, nil
 }
 
 func handleWriteReq(req *protocol.WriteRequest) (*protocol.WriteResponse, error) {
+	log.Printf("write request received: %v\n", req)
+
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -132,20 +150,20 @@ func handleWriteReq(req *protocol.WriteRequest) (*protocol.WriteResponse, error)
 	var exists bool
 
 	// Check if topic exists
-	err = db.QueryRow("SELECT EXISTS(SELECT * from topics WHERE name=?)", req.Topic).Scan(&exists)
+	err = tx.QueryRow("SELECT EXISTS(SELECT * from topics WHERE name=?)", req.Topic).Scan(&exists)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check if partition exists
-	err = db.QueryRow("SELECT EXISTS(SELECT * from partitions WHERE topic=? and partition=?)", req.Topic, req.Partition).Scan(&exists)
+	err = tx.QueryRow("SELECT EXISTS(SELECT * from partitions WHERE topic=? and partition=?)", req.Topic, req.Partition).Scan(&exists)
 	if err != nil {
 		return nil, err
 	}
 
 	// Write message into database
 	timestamp := time.Now().Format(time.RFC3339)
-	result, err := db.Exec("INSERT into messages(topic, partition, message, timestamp) values(?, ?, ?, ?)",
+	result, err := tx.Exec("INSERT into messages(topic, partition, message, timestamp) values(?, ?, ?, ?)",
 		req.Topic, req.Partition, req.Message, timestamp)
 	if err != nil {
 		return nil, err

@@ -7,19 +7,23 @@ import (
 	"github.com/ayushkumar121/event-broker/pkg/protocol"
 )
 
-type Producer struct {
-	brokers []string
+type ProducerClient struct {
+	*brokerClient
 }
 
-func NewProducer(bootstrapBrokers []string) (*Producer, error) {
-	// TODO: Request metadata and get all brokers and topics and partitions
-	return &Producer{
-		brokers: bootstrapBrokers,
+func NewProducerClient(bootstrapBrokers []string) (*ProducerClient, error) {
+	brokerClient, err := newBrokerClient(bootstrapBrokers)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ProducerClient{
+		brokerClient,
 	}, nil
 }
 
-func (producer *Producer) SendMessage(topic string, partition uint32, message []byte) (int64, error) {
-	broker := producer.getBroker(topic, partition)
+func (client *ProducerClient) SendMessage(topic string, partition uint32, message []byte) (int64, error) {
+	broker := client.getBroker(topic, partition)
 	conn, err := net.Dial("tcp", broker)
 	if err != nil {
 		return -1, err
@@ -52,9 +56,4 @@ func (producer *Producer) SendMessage(topic string, partition uint32, message []
 	default:
 		panic("unknown response type")
 	}
-}
-
-func (producer *Producer) getBroker(string, uint32) string {
-	// TODO: Figure out the correct broker for topic and partition
-	return producer.brokers[0]
 }

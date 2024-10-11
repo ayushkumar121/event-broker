@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"encoding/binary"
+	"errors"
 	"io"
 )
 
@@ -71,7 +72,7 @@ func DecodeResponse(r io.Reader) (Response, error) {
 		return decodeErrorResponse(r)
 
 	default:
-		return nil, ErrUnknownRequestType
+		return nil, errors.New("unknown response type")
 	}
 }
 
@@ -159,7 +160,7 @@ func EncodeResponse(w io.Writer, res Response) error {
 		return encodeErrorResponse(w, res.(*ErrorResponse))
 
 	default:
-		return ErrUnknownResponseType
+		return errors.New("unknown response type")
 	}
 }
 
