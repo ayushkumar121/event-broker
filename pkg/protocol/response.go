@@ -26,8 +26,10 @@ func (*MetaDataResponse) GetType() ResponseType {
 	return RESPONSE_METADATA
 }
 
+type Offset uint32
+
 type ReadResponse struct {
-	Offset  uint64
+	Offset  Offset
 	Message []byte
 }
 
@@ -36,7 +38,7 @@ func (*ReadResponse) GetType() ResponseType {
 }
 
 type WriteResponse struct {
-	Offset int64
+	Offset uint32
 }
 
 func (*WriteResponse) GetType() ResponseType {
@@ -82,7 +84,7 @@ func decodeMetadataResponse(io.Reader) (*MetaDataResponse, error) {
 
 func decodeReadResponse(r io.Reader) (*ReadResponse, error) {
 	// Decoding offset
-	var offset uint64
+	var offset Offset
 	err := binary.Read(r, NetworkOrder, &offset)
 	if err != nil {
 		return nil, err
@@ -109,7 +111,7 @@ func decodeReadResponse(r io.Reader) (*ReadResponse, error) {
 
 func decodeWriteResponse(r io.Reader) (*WriteResponse, error) {
 	// Decoding offset
-	var offset int64
+	var offset uint32
 	err := binary.Read(r, NetworkOrder, &offset)
 	if err != nil {
 		return nil, err

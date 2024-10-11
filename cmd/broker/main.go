@@ -123,17 +123,22 @@ func handleReadReq(req *protocol.ReadRequest) (*protocol.ReadResponse, error) {
 	log.Printf("read request received: %v\n", req)
 
 	// TODO: allow multiple message to be received
-	var offset uint32
+	var offset protocol.Offset
 	var message []byte
-	err := db.QueryRow("SELECT id, message from messages WHERE topic=? and partition=? ORDER BY id DESC", req.Topic, req.Partition).Scan(&offset, &message)
-	if err != nil {
+	err := db.QueryRow("SELECT id, message from messages WHERE topic=? and partition=? and id > ? ORDER BY id DESC", req.Topic, req.Partition, req.LastOffset).Scan(&offset, &message)
+
+	if err == sql.ErrNoRows {
+		// Returning empty result
+		return &protocol.ReadResponse{
+			Offset:  0,
+			Message: []byte{},
+		}, nil
+	} else if err != nil {
 		return nil, err
 	}
 
-	// TODO: keep track of what offset each client is in
-
 	return &protocol.ReadResponse{
-		Offset:  uint64(offset),
+		Offset:  offset,
 		Message: message,
 	}, nil
 }
@@ -180,7 +185,7 @@ func handleWriteReq(req *protocol.WriteRequest) (*protocol.WriteResponse, error)
 	}
 
 	return &protocol.WriteResponse{
-		Offset: offset,
+		Offset: uint32(offset),
 	}, nil
 }
 

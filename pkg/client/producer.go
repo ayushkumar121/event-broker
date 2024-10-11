@@ -22,11 +22,11 @@ func NewProducerClient(bootstrapBrokers []string) (*ProducerClient, error) {
 	}, nil
 }
 
-func (client *ProducerClient) SendMessage(topic string, partition uint32, message []byte) (int64, error) {
+func (client *ProducerClient) SendMessage(topic string, partition uint32, message []byte) (uint32, error) {
 	broker := client.getBroker(topic, partition)
 	conn, err := net.Dial("tcp", broker)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 	defer conn.Close()
 
@@ -38,12 +38,12 @@ func (client *ProducerClient) SendMessage(topic string, partition uint32, messag
 
 	err = protocol.EncodeRequest(conn, req)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	res, err := protocol.DecodeResponse(conn)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	switch res.GetType() {
@@ -51,7 +51,7 @@ func (client *ProducerClient) SendMessage(topic string, partition uint32, messag
 		return res.(*protocol.WriteResponse).Offset, nil
 
 	case protocol.RESPONSE_ERROR:
-		return -1, errors.New(res.(*protocol.ErrorResponse).Message)
+		return 0, errors.New(res.(*protocol.ErrorResponse).Message)
 
 	default:
 		panic("unknown response type")

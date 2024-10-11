@@ -31,8 +31,9 @@ func (*MetaDataRequest) KeepAlive() bool {
 }
 
 type ReadRequest struct {
-	Topic     string
-	Partition uint32
+	Topic      string
+	Partition  uint32
+	LastOffset Offset
 }
 
 func (*ReadRequest) GetType() RequestType {
@@ -106,9 +107,17 @@ func decodeReadRequest(r io.Reader) (*ReadRequest, error) {
 		return nil, err
 	}
 
+	// Decoding last offset
+	var lastOffset Offset
+	err = binary.Read(r, NetworkOrder, &lastOffset)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ReadRequest{
-		Topic:     string(topic),
-		Partition: partition,
+		Topic:      string(topic),
+		Partition:  partition,
+		LastOffset: lastOffset,
 	}, nil
 }
 
@@ -194,6 +203,12 @@ func encodeReadRequest(w io.Writer, req *ReadRequest) error {
 
 	// Encoding partition
 	err = binary.Write(w, NetworkOrder, req.Partition)
+	if err != nil {
+		return err
+	}
+
+	// Encoding last offset
+	err = binary.Write(w, NetworkOrder, req.LastOffset)
 	if err != nil {
 		return err
 	}

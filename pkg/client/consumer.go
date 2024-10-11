@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"net"
+	"time"
 
 	"github.com/ayushkumar121/event-broker/pkg/protocol"
 )
@@ -51,11 +52,9 @@ func (client *ConsumerClient) AddConsumer(topic string, partition uint32, handle
 	if err != nil {
 		return err
 	}
-
-	go consumerHandler(topic, partition, conn, handler)
-
 	client.consumers = append(client.consumers, consumer{conn})
 
+	go consumerHandler(topic, partition, conn, handler)
 	return nil
 }
 
@@ -67,10 +66,13 @@ func (client *ConsumerClient) Shutdown() {
 
 // TODO: reconnection incase broker goes down
 func consumerHandler(topic string, partition uint32, conn net.Conn, handler consumerHandlerFunc) {
+	var lastOffset protocol.Offset = 0
+
 	for {
 		req := &protocol.ReadRequest{
-			Topic:     topic,
-			Partition: partition,
+			LastOffset: lastOffset,
+			Topic:      topic,
+			Partition:  partition,
 		}
 
 		err := protocol.EncodeRequest(conn, req)
@@ -86,9 +88,16 @@ func consumerHandler(topic string, partition uint32, conn net.Conn, handler cons
 
 		switch res.GetType() {
 		case protocol.RESPONSE_READ:
+			readResponse := res.(*protocol.ReadResponse)
+			if readResponse.Offset == 0 {
+				time.Sleep(time.Second)
+				continue
+			}
+			lastOffset = readResponse.Offset
+
 			handler(ConsumerResult{
 				err:      nil,
-				response: res.(*protocol.ReadResponse),
+				response: readResponse,
 			})
 
 		case protocol.RESPONSE_ERROR:
