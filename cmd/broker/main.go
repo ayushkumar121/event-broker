@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	PORT             = "8080"
-	DATABASE         = "broker.db"
-	CONNECTION_SLEEP = time.Second
+	PORT         = "8080"
+	DATABASE     = "broker.db"
+	BROKER_DELAY = time.Second
 )
 
 var db *sql.DB
@@ -110,7 +110,7 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		time.Sleep(CONNECTION_SLEEP)
+		time.Sleep(BROKER_DELAY)
 	}
 }
 
@@ -122,6 +122,7 @@ func handleMetadataReq(req *protocol.MetaDataRequest) (*protocol.MetaDataRespons
 func handleReadReq(req *protocol.ReadRequest) (*protocol.ReadResponse, error) {
 	log.Printf("read request received: %v\n", req)
 
+	// TODO: keep track of LastOffset at server as well and take max(serverLastOffset, clientLastOffset)
 	// TODO: allow multiple message to be received
 	var offset protocol.Offset
 	var message []byte
